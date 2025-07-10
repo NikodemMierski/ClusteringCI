@@ -5,7 +5,7 @@ This repository contains code for analyzing chaotic itinerancy for globally coup
 This code accompanies the article (in preparation) titled:  
 **"Application of a Density-Based Clustering Algorithm and Entropy for the Analysis of the Chaotic Itinerancy Phenomenon"**
 
-## Files:
+### Files:
 
 - gcm_dbscan.py
 - gaussian_dbscan.py
@@ -13,7 +13,7 @@ This code accompanies the article (in preparation) titled:
 - gaussian_entropy.py
 
 
-## The files gcm_dbscan.py and gaussian_dbscan.py:
+### The files gcm_dbscan.py and gaussian_dbscan.py:
 
 - simulate the dynamics of the system for given parameters,
 - apply the DBSCAN clustering algorithm to identify dense clusters,
@@ -21,12 +21,12 @@ This code accompanies the article (in preparation) titled:
 - generate visualizations of time series, phase portraits, and cluster membership over time,
 - compute the average time in each cluster and the average time in each cluster after including isolated points shown on the cluster membership plot.
 
-## The files gcm_entropy.py and gaussian_entropy.py:
+### The files gcm_entropy.py and gaussian_entropy.py:
 
 - find the values of epsilon for which the variance of local Shannon entropy is the highest,
 - plot the variance of local Shannon entropy as a function of epsilon for constant N = 5 and constant a = 2.
 
-## Remarks:
+### Remarks:
 
 - In gcm_dbscan.py and gauss_dbscan.py, the DBSCAN parameters are predefined for the considered parameter values of these models.
 
