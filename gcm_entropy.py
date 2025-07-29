@@ -2,7 +2,7 @@
 
 """
 CI_dbscan: gcm_entropy
-Version 1.0, July 2, 2025.
+Version 1.0, July 29, 2025.
 Copyright (C) 2025 Nikodem Mierski
 
 This program is free software: you can redistribute it and/or modify
@@ -89,8 +89,8 @@ N = 3
 a = 2
 eps_values = np.linspace(0.1,0.28, 1801)
 eps_values = np.round(eps_values,4)
-t_start = 10000
-t_end = 40000
+t_start = 20000
+t_end = 50000
 shannon_variances = []
 permutation_variances = []
 

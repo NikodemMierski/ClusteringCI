@@ -2,7 +2,7 @@
 
 """
 CI_dbscan: gaussian_entropy
-Version 1.0, July 2, 2025.
+Version 1.0, July 29, 2025.
 Copyright (C) 2025 Nikodem Mierski
 
 This program is free software: you can redistribute it and/or modify
@@ -135,18 +135,19 @@ top_10_permutation = sorted_pairs_permutation[:10]
 for i, (w, e) in enumerate(top_10_permutation, 1):
     print(f"eps: {e}, variance of local permutation entropy: {w}\n")
 
-# plot of local Shannon entropy variance as a function of epsilon
-plt.scatter(eps_values, shannon_variances, s=5, c="r")
-plt.grid()
-plt.xlabel("ε")
-plt.ylabel("Sum of variances of local Shannon entropy for all dimensions")
-plt.tight_layout()
-plt.show()
 
-# plot of local permutation entropy variance as a function of epsilon
-plt.scatter(eps_values, permutation_variances, s=5, c="r")
+# plot of local Shannon entropy variance and local permutation entropy variance as a function of epsilon
+shannon_variances = np.array(shannon_variances)
+permutation_variances = np.array(permutation_variances)
+
+# normalized variances
+shannon_variances_normed = (shannon_variances - shannon_variances.min()) / (shannon_variances.max() - shannon_variances.min())
+permutation_variances_normed= (permutation_variances - permutation_variances.min()) / (permutation_variances.max() - permutation_variances.min())
+
+plt.scatter(eps_values, shannon_variances_normed, s=5)
+plt.scatter(eps_values, permutation_variances_normed, s=5)
 plt.grid()
-plt.xlabel("ε")
-plt.ylabel("Sum of variances of local permutation entropy for all dimensions")
+plt.xlabel("ε", fontsize=10)
+plt.ylabel("Sum of variances of local entropy for all dimensions", fontsize=10)
 plt.tight_layout()
 plt.show()

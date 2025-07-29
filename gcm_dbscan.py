@@ -2,7 +2,7 @@
 
 """
 CI_dbscan: gcm_dbscan
-Version 1.0, July 2, 2025.
+Version 1.0, July 29, 2025.
 Copyright (C) 2025 Nikodem Mierski
 
 This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,12 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
-from collections import Counter
 from collections import defaultdict
-from scipy.stats import entropy
+import matplotlib.lines as mlines
+from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tsa.stattools import adfuller
+import math
+from scipy.stats import chi2
 
 def f(a,epsilon,x):
 	"""Computation of the next vector in the GCM system (Kaneko 1990)."""
@@ -108,20 +111,36 @@ print(clusters.to_string(index = False))
 
 # plot with found clusters
 plt.figure(figsize=(8, 8))
-cmap = plt.cm.plasma
 
-# create a color array
-colors = np.zeros((len(labels), 4)) 
+custom_colors = [
+    (230/255,  25/255,  75/255, 1.0),
+    (60/255,  180/255,  75/255, 1.0),
+    (67/255,   99/255, 216/255, 1.0),
+    (245/255, 130/255,  49/255, 1.0),
+    (145/255,  30/255, 180/255, 1.0),
+    (240/255,  50/255, 230/255, 1.0),
+    (0/255,   128/255, 128/255, 1.0),
+    (67/255, 99/255, 150/255, 1.0),
+    (0/255,   0/255,  128/255, 1.0),
+    (128/255, 0/255,  128/255, 1.0),
+    (150/255, 75/255,  0/255,  1.0),
+    (204/255, 153/255, 0/255, 1.0) 
+]
+
+unique_labels = sorted(set(labels) - {-1})
+label_color_map = {label: custom_colors[i] for i, label in enumerate(unique_labels)}
+
+colors = np.zeros((len(labels), 4))
 for i, label in enumerate(labels):
     if label == -1:
-        colors[i] = [0, 0, 1, 0.33]  
+        colors[i] = [0.3, 0.3, 0.3, 0.4]  
     else:
-        normalized_label = (label - labels.min()) / (labels.max() - labels.min())
-        colors[i] = cmap(normalized_label) 
+        colors[i] = label_color_map[label]
 
-plt.scatter(df[0], df[1], c=colors, s=1)
-plt.xlabel('$x_n(1)$')
-plt.ylabel('$x_n(2)$')
+plt.scatter(df[0], df[1], c=colors, s=3)
+plt.xlabel('$x_n(1)$', fontsize=10)
+plt.ylabel('$x_n(2)$', fontsize=10)
+
 plt.show()
 
 # transition matrix
@@ -253,16 +272,36 @@ else:
 
 # plot with clusters after merging
 plt.figure(figsize=(8, 8))
-cmap = plt.cm.plasma
+red = [1, 0, 0, 1]
+navy = [0, 0, 0.5, 1]
+yellow = [1, 0.598, 0.155, 1]
+gray = [0.3, 0.3, 0.3, 0.4]
 
-# create a color array
-colors = np.zeros((len(labels), 4))  
+colors = np.zeros((len(labels), 4))
+
 for i, label in enumerate(labels):
     if label == -1:
-        colors[i] = [0, 0, 1, 0.33]  
-    else:
-        normalized_label = (label - labels.min()) / (labels.max() - labels.min())
-        colors[i] = cmap(normalized_label) 
+        colors[i] = gray
+    elif label == 0:
+        colors[i] = red
+    elif label == 1:
+        colors[i] = navy
+    elif label == 2:
+        colors[i] = yellow
+
+scatter = plt.scatter(df[0], df[1], c=colors, s=3)
+
+plt.xlabel('$x_n(1)$', fontsize=10)
+plt.ylabel('$x_n(2)$', fontsize=10)
+
+legend_elements = [
+    mlines.Line2D([], [], color=red, marker='o', linestyle='None', markersize=6, label='Cluster 0'),
+    mlines.Line2D([], [], color=navy, marker='o', linestyle='None', markersize=6, label='Cluster 1'),
+    mlines.Line2D([], [], color=yellow, marker='o', linestyle='None', markersize=6, label='Cluster 2'),
+    mlines.Line2D([], [], color=[0.5, 0.5, 0.5, 1], marker='o', linestyle='None', markersize=6, label='Noise')
+]
+
+plt.legend(handles=legend_elements, loc='best', fontsize=10)
 
 plt.scatter(df[0], df[1], c=colors, s=1)
 plt.xlabel('$x_n(1)$')
@@ -311,46 +350,57 @@ print("\nAverage time in clusters:\n")
 for cluster, average in average_time(time_in_cluster(labels)).items():
     print(f"Cluster: {cluster:2d};  average time:  {average:.2f}")
 
+# median time in clusters
+def median_time(times):
+    lengths = defaultdict(list)
+    
+    for cluster, time in times:
+        lengths[cluster].append(time)
+    
+    median_times = {cluster: np.median(lengths[cluster]) for cluster in lengths}
+    return median_times
+
+print("\nMedian time in clusters:\n")
+for cluster, median in median_time(time_in_cluster(labels)).items():
+    print(f"Cluster: {cluster:2d};  median time:  {median:.2f}")
+
+# standard deviation of time in clusters
+def standard_deviation_of_times(sequence):
+    times = time_in_cluster(sequence)
+
+    groups = {}
+    for cluster, length in times:
+        groups.setdefault(cluster, []).append(length)
+
+    result = {cluster: np.std(lengths, ddof=0) for cluster, lengths in groups.items()}
+    return result
+
+print("\nStandard deviation of time in clusters:\n")
+for cluster, deviation in standard_deviation_of_times(labels).items():
+    print(f"Cluster: {cluster:2d}; standard deviation of time in cluster: {deviation:.2f}")
+
+# number of visits 
+def count_visits(sequence):
+    visits = {}
+    previous = None
+
+    for number in sequence:
+        if number != previous:
+            if number not in visits:
+                visits[number] = 0
+            visits[number] += 1
+        previous = number
+
+    return visits
+
+print("\nNumber of visits in clusters:\n")
+for cluster, count in count_visits(labels).items():
+    print(f"Cluster: {cluster:2d}; number of visits: {count}")
+
 # sequence of consecutively visited clusters
 def sequence_of_clusters(sequence):
     sequence_clusters = sequence[np.append(True, sequence[1:] != sequence[:-1])]
     return sequence_clusters
-
-consecutive_clusters = sequence_of_clusters(np.array(labels))
-
-consecutive_clusters_without_noise = consecutive_clusters[consecutive_clusters != -1]
-
-# entropy 
-def calculate_entropy(sequence):
-    symbol_counts = Counter(sequence)
-    probabilities = [count / len(sequence) for count in symbol_counts.values()]
-    entropy_value = entropy(probabilities, base=2)
-    
-    return entropy_value
-
-print("\nEntropy of the sequence of consecutively visited clusters:", calculate_entropy(consecutive_clusters_without_noise),"\n")
-
-# average time in noise after leaving a given cluster
-def average_time_noise(sequnce):
-    results = {}
-    for i in range(len(sequnce)-1):
-        if sequnce[i] != -1:  
-            count_minus_1 = 0
-            j = i + 1
-            while j < len(sequnce) and sequnce[j] == -1:
-                count_minus_1 += 1
-                j += 1
-            
-            if count_minus_1 > 0:
-                if sequnce[i] not in results:
-                    results[sequnce[i]] = []
-                results[sequnce[i]].append(count_minus_1)
-
-    for x in results:
-        average = sum(results[x]) / len(results[x])
-        print(f"Cluster: {x}, average number of -1 after leaving: {average:.2f}")
-
-average_time_noise(labels)
 
 # plot of cluster membership
 a, b = 16600, 17600
@@ -358,17 +408,31 @@ x_values = np.arange(t_start, t_end)
 
 fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 7), sharex=True)
 
-axes[0].plot(x_values[a:b], data[a:b, 0], label='x[0]', linewidth=1, color='red')
+axes[0].plot(x_values[a:b], data[a:b, 0], label='x[0]', linewidth=1)
 axes[0].set_ylabel('$x_n(1)$')
 axes[0].grid()
 
-axes[1].scatter(x_values[a:b], labels[a:b], marker='o', s=30, color='orange')
-axes[1].set_yticks([-1, 0, 1, 2])
-axes[1].set_yticklabels(["noise", "cluster 0", "cluster 1", "cluster 2"])
-axes[1].set_xlabel('Time')
-axes[1].grid()
+red = [1, 0, 0, 1]
+blue = [0, 0, 0.5, 1]
+orange = [1, 0.598, 0.155, 1]
+gray = [0.5, 0.5, 0.5, 1]
 
-plt.ylim(-1.5,2.5)
+label_colors = {
+    -1: gray,
+     0: red,
+     1: blue,
+     2: orange
+}
+
+for label_val, color in label_colors.items():
+    mask = labels[a:b] == label_val
+    axes[1].scatter(x_values[a:b][mask], labels[a:b][mask], color=color, s=12, zorder=3)
+
+axes[1].set_yticks([-1, 0, 1, 2])
+axes[1].set_yticklabels(["noise", "cluster 0", "cluster 1", "cluster 2"], fontsize=10)
+axes[1].set_xlabel('Time', fontsize=10)
+axes[1].grid()
+axes[1].set_ylim(-1.5, 2.5)
 plt.tight_layout()
 plt.show()
 
@@ -395,6 +459,118 @@ def include_isolated_points(lst):
 
 labels = include_isolated_points(labels)
 
+consecutive_clusters = sequence_of_clusters(np.array(labels))
+
+consecutive_clusters_without_noise = consecutive_clusters[consecutive_clusters != -1]
+
 print("\nAverage time in clusters after adding isolated points in the cluster membership plot:\n")
 for cluster, average in average_time(time_in_cluster(labels)).items():
     print(f"Cluster: {cluster:2d};  average time:  {average:.2f}")
+
+
+print("\nMedian time in clusters after adding isolated points in the cluster membership plot:\n")
+for cluster, median in median_time(time_in_cluster(labels)).items():
+    print(f"Cluster: {cluster:2d};  median time:  {median:.2f}")
+
+print("\nStandard deviation of time in clusters after adding isolated points in the cluster membership plot:\n")
+for cluster, deviation in standard_deviation_of_times(labels).items():
+    print(f"Cluster: {cluster:2d}; standard deviation of time in cluster: {deviation:.2f}")
+
+
+print("\nNumber of visits in clusters after adding isolated points in the cluster membership plot:\n")
+for cluster, count in count_visits(labels).items():
+    print(f"Cluster: {cluster:2d}; number of visits: {count}")
+
+
+# Ljung-Box Test
+def ljung_box_test(sequence):
+    clusters = time_in_cluster(sequence)
+    times = [length for _, length in clusters if _ != -1]
+
+    result = acorr_ljungbox(times, lags=[10], return_df=True)
+    pval = result['lb_pvalue'].iloc[0]
+
+    return pval
+
+print("\nLjung-Box Test p-value:", ljung_box_test(labels))
+
+# Augmented Dickey-Fuller Test 
+def adf(sequence):
+    clusters = time_in_cluster(sequence)
+    times = [length for _, length in clusters if _ != -1]
+
+    result = adfuller(times)
+    p_value = result[1]
+
+    return p_value
+
+print("\nAugmented Dickey-Fuller Test p-value:", adf(labels))
+
+# O’Brien-Dyck Runs Test - code from https://github.com/psinger/RunsTest described in file runs_test.py
+def weighted_variance(counts):
+    avg = 0
+    for length, count in counts.items():
+        avg += count * length
+
+    counts_only = list(counts.values())
+    avg /= sum(counts_only)
+
+    var = 0
+    for length, count in counts.items():
+        var += count * math.pow((length - avg), 2)
+
+    try:
+        var /= sum(counts_only) - 1
+    except ZeroDivisionError:
+        raise Exception("Division by zero due to too few counts!")
+
+    return var
+
+def runs_test(input_data, path=True):
+    if path:
+        counter = 1
+        cats = defaultdict(lambda: defaultdict(int))
+
+        for i, elem in enumerate(input_data):
+            if i == len(input_data) - 1:
+                cats[elem][counter] += 1
+                break
+
+            if input_data[i + 1] == elem:
+                counter += 1
+            else:
+                cats[elem][counter] += 1
+                counter = 1
+    else:
+        cats = input_data
+
+    x2 = 0
+    df = 0
+    nr_elem = len(cats.keys())
+    fail_cnt = 0
+
+    for elem in cats.keys():
+        ns = sum([x * y for x, y in cats[elem].items()])
+        rs = sum(cats[elem].values())
+
+        if len(cats[elem].keys()) == 1 or rs == 1 or (ns - rs) == 1:
+            fail_cnt += 1
+            continue
+
+        ss = weighted_variance(cats[elem])
+        cs = ((rs ** 2) - 1) * (rs + 2) * (rs + 3) / (2 * rs * (ns - rs - 1) * (ns + 1))
+        vs = cs * ns * (ns - rs) / (rs * (rs + 1))
+
+        x2 += ss * cs
+        df += vs
+
+    if nr_elem - fail_cnt < 2:
+        raise Exception("Too many categories were ignored. Cannot perform the test.")
+
+    if x2 == 0 or df == 0:
+        raise Exception("x2 or df is zero, cannot compute p-value.")
+
+    pval = chi2.sf(x2, df)
+    return pval
+
+print("\nO\’Brien-Dyck Runs Test p-value:", runs_test(consecutive_clusters_without_noise))
