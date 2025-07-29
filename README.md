@@ -12,7 +12,7 @@ This code accompanies the article (in preparation) titled:
 - gcm_entropy.py
 - gaussian_entropy.py
 - gcm_hdbscan.py
-
+- runs_test.py
 
 ### The files gcm_dbscan.py and gaussian_dbscan.py:
 
@@ -20,12 +20,15 @@ This code accompanies the article (in preparation) titled:
 - apply the DBSCAN clustering algorithm to identify dense clusters,
 - analyze transitions between identified clusters and merge two clusters into a single cluster if at least 80% of the points from the first cluster transition into the second,
 - generate visualizations of time series, phase portraits, and cluster membership over time,
-- compute the average time in each cluster and the average time in each cluster after including isolated points shown on the cluster membership plot.
+- compute the average time in each cluster, median time in each cluster, standard deviation of time in each cluster and number of visits in each cluster and the same measures after including isolated points shown on the cluster membership plot,
+- perform test to check whether the observed itinerancy is chaotic.
+  
 
 ### The files gcm_entropy.py and gaussian_entropy.py:
 
 - find the values of epsilon for which the variance of local Shannon entropy is the highest,
-- plot the variance of local Shannon entropy as a function of epsilon for constant N = 5 and constant a = 2.
+- find the values of epsilon for which the variance of local permutation entropy is the highest,
+- plot the variance of local Shannon entropy and the variance of local permutation entropy as a function of epsilon for constant N = 3 and constant a = 2.
 
 ### The file gcm_hdbscan.py:
 
