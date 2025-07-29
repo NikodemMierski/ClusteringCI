@@ -1,4 +1,4 @@
-# DBSCAN and Entropy for Chaotic Itinerancy Analysis
+# Analysis of the Chaotic Itinerancy Phenomenon using Entropy and Clustering
 
 This repository contains code for analyzing chaotic itinerancy for globally coupled maps and mutually coupled Gaussian maps using entropy-based measures and the DBSCAN clustering algorithm. The program identifies attractor ruins visited by the system and analyzes their structure and transitions.
 
