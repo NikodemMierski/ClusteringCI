@@ -2,8 +2,9 @@
 
 This repository contains code for analyzing chaotic itinerancy for globally coupled logistic maps using entropy-based measures and the HDBSCAN clustering algorithm. The program identifies attractor ruins visited by the system and analyzes their structure and transitions.
 
-This code accompanies the article (in preparation) titled:  
+This code accompanies the article titled:  
 **"Analysis of the Chaotic Itinerancy Phenomenon using Entropy and Clustering"**
+https://doi.org/10.1103/bcwd-nx7r
 
 ### Files:
 
